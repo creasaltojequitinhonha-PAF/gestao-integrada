@@ -99,7 +99,7 @@ const menus = {
         titulo: "Ajuda com IA (Google Gemini)",
         opcoes: [
             { texto: "Fazer uma Pergunta ao Gemini", link: "https://gemini.google.com/", icone: "fa-solid fa-robot" },
-            { texto: "Sobre o Google Gemini", link: "https://www.gemini.com/pt-br", icone: "fa-solid fa-circle-info" }
+            
         ]
     }
 };

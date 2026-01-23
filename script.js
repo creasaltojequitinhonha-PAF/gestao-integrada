@@ -54,7 +54,7 @@ const menus = {
             { texto: "Ficha - Couto", link: "https://docs.google.com/document/d/1iJTbClbZyoXcSiD0Xz1mv3h3BlB84OnH/edit?usp=sharing", icone: "fa-file-lines" },
             { texto: "Ficha - Datas", link: "https://docs.google.com/document/d/12NDaPKBEZcy5aHEEkD0-h3qnoQ6EWUKY/edit?usp=sharing", icone: "fa-file-lines" },
             { texto: "Ficha - Gouveia", link: "https://docs.google.com/document/d/1XmnGkgHTq3DZ_8uFEZ7F5dW7ZAg0EYdV/edit?usp=sharing", icone: "fa-file-lines" },
-            { texto: "Ficha - Monjolos", link: "https://docs.google.com/document/d/1R-TaCEPmZEp6pCcenaSX-0j1KjwPc3I4/edit?usp=sharing", icone: "fa-file-lines" },
+            { texto: "Ficha - Monjolos", link: "https://docs.google.com/document/d/1R-TaCEPmZEp6pCcenaSX-0j1KjwPc3l4/edit?usp=sharing&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-file-lines" },
             { texto: "Ficha - SGRP", link: "https://docs.google.com/document/d/1AFHb1sMadIMLDluBkdVe6iEOZ6Whgjo9/edit?usp=sharing", icone: "fa-file-lines" }
         ]
     },

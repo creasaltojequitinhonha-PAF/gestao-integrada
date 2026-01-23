@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Gestão - CREAS Alto Jequitinhonha</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+<link type="text/css" rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<div class="container">
+    <header class="main-header">
+        <div class="header-content-row">
+            <div class="header-logo-side">
+                <img src="https://raw.githubusercontent.com/creasaltojequitinhonha-paf/sistema-paf-creas/main/logo_creas.png" alt="Logo CREAS">
+            </div>
+            <div class="header-text-side">
+                <h1>Gestão Integrada</h1>
+                <p>CREAS Regional Alto Jequitinhonha - Diamantina/MG</p>
+                <p>Largo Dom João, 191 - Cep: 39100-000</p>
+                <p>Telefone: (38) 3531-8622 - (38) 98413-2059</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="search-area">
+        <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" onkeyup="filtrarAvancado()" placeholder="Pesquisar serviço, cidade ou documento...">
+        </div>
+    </div>
+
+    <main class="portal-grid">
+        <a href="https://creasaltojequitinhonha-paf.github.io/sistema-paf-creas/" class="service-card" target="_blank">
+            <div class="icon-box"><i class="fa-solid fa-file-invoice"></i></div>
+            <span>Sistema PAF</span>
+        </a>
+
+        <div class="service-card" onclick="abrirModal('paefi_unificado')">
+            <div class="icon-box"><i class="fa-solid fa-users-rectangle"></i></div>
+            <span>PAEFI - Gestão<br>e Acolhida</span>
+        </div>
+
+       
+
+        <div class="service-card" onclick="abrirModal('judicial')">
+            <div class="icon-box"><i class="fa-solid fa-gavel"></i></div>
+            <span>Acompanhamento<br>Judicial</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('judicial_municipios')">
+            <div class="icon-box"><i class="fa-solid fa-map-location-dot"></i></div>
+            <span>Judicial por<br>Município</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('fichas_familia')">
+            <div class="icon-box"><i class="fa-solid fa-file-circle-check"></i></div>
+            <span>Fichas Acompanhamento<br>Familiar</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('mulher')">
+            <div class="icon-box"><i class="fa-solid fa-venus"></i></div>
+            <span>Ficha de Acompanhamento à<br>Mulher</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('recepcao')">
+            <div class="icon-box"><i class="fa-solid fa-headset"></i></div>
+            <span>Recepção</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('oficios')">
+            <div class="icon-box"><i class="fa-solid fa-envelope-open-text"></i></div>
+            <span>Controle de<br>Ofícios 2026</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('rma')">
+            <div class="icon-box"><i class="fa-solid fa-chart-line"></i></div>
+            <span>Controle RMA</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('contatos')">
+            <div class="icon-box"><i class="fa-solid fa-address-book"></i></div>
+            <span>Lista de<br>Contatos</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('agenda')">
+            <div class="icon-box"><i class="fa-solid fa-calendar-check"></i></div>
+            <span>Agenda 2026</span>
+        </div>
+
+        <div class="service-card" onclick="abrirModal('historico')">
+            <div class="icon-box"><i class="fa-solid fa-box-archive"></i></div>
+            <span>Histórico /<br>Arquivo</span>
+        </div>
+ <div class="service-card" onclick="abrirModal('gemini_ajuda')">
+    <div class="icon-box"><i class="fa-solid fa-robot"></i></div>
+    <span>Ajuda com IA<br>(Gemini)</span>
+</div>
+
+    </main>
+</div>
+
+<div id="modalUniversal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="fecharModal()">&times;</span>
+        <h3 id="modalTitle">Título</h3>
+        <div id="modalOptions" class="modal-grid"></div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<script type="text/javascript" src="js/script.js"></script>
+</body>
+</html>

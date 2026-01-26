@@ -1,28 +1,23 @@
+// --- CONFIGURAÇÃO DO RMA ---
+const LINK_PLANILHA_STATUS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNo1Y9qY1yAnErz_e1s26mpUD6vGxvzfsWbB0fwDxkQf9LadfBouevcOopjdJSZHIPR7vEnG39eDtx/pub?gid=641766743&single=true&output=csv";
+const MESES_NOMES = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+
+let rmaPendente = false; 
+
 const menus = {
     paefi_unificado: {
         titulo: "PAEFI - Gestão e Acolhida",
         opcoes: [
             { texto: "PAEFI - Atendimento Geral", link: "https://docs.google.com/spreadsheets/d/1NZYngl8WRcRWzIJ2xytYqkSY_2jxLrJqU0a_MPQqImo/edit?usp=sharing", icone: "fa-users-gear" },
-            // Fichas de Acolhida Inicial (Adicionadas conforme o print)
-           
             { texto: "Ficha Acolhida Inicial - Couto", link: "https://docs.google.com/document/d/1aepYWuwdNGFBLjBHPtHItH8q2EjMS6L-/edit?usp=sharing&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-file-signature" },
-           
             { texto: "Ficha Acolhida Inicial - Datas", link: "https://docs.google.com/document/d/1QDVycTzAlBb6znj6Me2yOtpHoiZ125GZ/edit?usp=sharing&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-file-signature" },
-           
             { texto: "Ficha Acolhida Inicial - Gouveia", link: "https://docs.google.com/document/d/1wvfsNW5gdyiJblacOxRGoLze8z34AXWu/edit?usp=sharing&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-file-signature" },
-           
             { texto: "Ficha Acolhida Inicial - Monjolos", link: "https://docs.google.com/document/d/1G8yiZC50k9DkMx9XrpzEhZipVo4AtBZP/edit?usp=sharing&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-file-signature" },
-           
             { texto: "Ficha Acolhida Inicial - SGRP", link: "https://docs.google.com/document/d/1wR7gLwC71B_JhtWuQhp-v7LqmSqXptHr/edit?usp=sharing&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-file-signature" },
-            // Links de Gestão de Vagas/Acolhida
             { texto: "Acolhida - Couto Magalhães", link: "https://docs.google.com/spreadsheets/d/1wlp8VDHyJ_RVM_JQqKa0W7OBkoiC7g8a/edit?usp=drive_link", icone: "fa-house-user" },
-            
             { texto: "Acolhida - Datas", link: "https://docs.google.com/spreadsheets/d/1nwvRUkZ28zBsCUoHHxPH9WGpxwERSbxH/edit?usp=drive_link", icone: "fa-house-user" },
-            
             { texto: "Acolhida - Gouveia", link: "https://docs.google.com/spreadsheets/d/1D9TcIl95xBVtyKbvlSNxFDAwWm7acPRc/edit?usp=drive_link&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-house-user" },
-            
             { texto: "Acolhida - Monjolos", link: "https://docs.google.com/spreadsheets/d/1CY6gBnp_KtISHzFf0L7fc7ZeHncMcjkI/edit?usp=drive_link&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-house-user" },
-            
             { texto: "Acolhida - SGRP", link: "https://docs.google.com/spreadsheets/d/178aswuI1TMy-nBWaWsg3wNfaK97Tp8ah/edit?usp=drive_link&ouid=105013242170562667223&rtpof=true&sd=true", icone: "fa-house-user" }
         ]
     },
@@ -38,13 +33,9 @@ const menus = {
         titulo: "Judicial por Município",
         opcoes: [
             { texto: "Couto", link: "https://docs.google.com/spreadsheets/d/1A--k28WWA65p3eCVtVUSk_8-SYDw_Yzg0Us8Q-K3wsU/edit?usp=sharing", icone: "fa-location-dot" },
-          
             { texto: "Datas", link: "https://docs.google.com/spreadsheets/d/17aRg8A6yONUQxzkz-Q54XkLy3Mq_3CAthrftBKQQY0s/edit?usp=sharing", icone: "fa-location-dot" },
-          
             { texto: "Gouveia", link: "https://docs.google.com/spreadsheets/d/1zyqqIz9bLVpFzLi-FUNl1HFIBGaYSUGjltxPnIyF8Rg/edit?usp=sharing", icone: "fa-location-dot" },
-          
             { texto: "Monjolos", link: "https://docs.google.com/spreadsheets/d/1FglFe7-Cx29zB0jWskcn7C9fa-1a_g3_VKJK09LMxu4/edit?usp=sharing", icone: "fa-location-dot" },
-          
             { texto: "SGRP", link: "https://docs.google.com/spreadsheets/d/1E6hj8LKbEU9cZYrmxND5ZbE8EJILLNN8N4t0joN9pK0/edit#gid=0", icone: "fa-location-dot" }
         ]
     },
@@ -98,12 +89,12 @@ const menus = {
     gemini_ajuda: {
         titulo: "Ajuda com IA (Google Gemini)",
         opcoes: [
-            { texto: "Fazer uma Pergunta ao Gemini", link: "https://gemini.google.com/", icone: "fa-solid fa-robot" },
-            
+            { texto: "Fazer uma Pergunta ao Gemini", link: "https://gemini.google.com/", icone: "fa-solid fa-robot" }
         ]
     }
 };
 
+// --- FUNÇÕES DE INTERFACE ---
 function filtrarAvancado() {
     const termo = document.getElementById('searchInput').value.toLowerCase();
     const cards = document.querySelectorAll('.service-card');
@@ -116,17 +107,65 @@ function filtrarAvancado() {
 function abrirModal(tipo) {
     const m = menus[tipo]; if(!m) return;
     document.getElementById('modalTitle').innerText = m.titulo;
-    document.getElementById('modalOptions').innerHTML = m.opcoes.map(o => `
-        <a href="${o.link}" target="_blank" class="modal-option">
-            <i class="fa-solid ${o.icone}"></i> ${o.texto}
-        </a>
-    `).join('');
+    document.getElementById('modalOptions').innerHTML = m.opcoes.map(o => {
+        const mostrarBadge = (o.texto === "Controle de Envio" && rmaPendente);
+        return `
+            <a href="${o.link}" target="_blank" class="modal-option">
+                <i class="fa-solid ${o.icone}"></i> ${o.texto}
+                ${mostrarBadge ? '<span class="badge-pendente">Pendente</span>' : ''}
+            </a>
+        `;
+    }).join('');
     document.getElementById('modalUniversal').style.display = 'flex';
 }
 
 function fecharModal() { 
     document.getElementById('modalUniversal').style.display = 'none'; 
 }
+
+// --- LÓGICA DO PULSAR (RMA) ---
+async function verificarPendenciasRMA() {
+    try {
+        const resposta = await fetch(LINK_PLANILHA_STATUS + "&t=" + new Date().getTime());
+        const csv = await resposta.text();
+        const linhas = csv.split(/\r?\n/);
+        
+        const dataAtual = new Date();
+        const mesAtualIndex = dataAtual.getMonth();
+        const diaDoMes = dataAtual.getDate(); // Pega o dia de hoje
+
+        // NOVA REGRA: 
+        // 1. Se for Janeiro, não pulsa (ano anterior).
+        // 2. Se for qualquer outro mês, só pulsa se já for DIA 8 ou mais.
+        if (mesAtualIndex === 0 || diaDoMes < 8) {
+            rmaPendente = false;
+            console.log("Pulsar desativado: aguardando prazo do dia 08.");
+        } else {
+            const mesAnterior = MESES_NOMES[mesAtualIndex - 1].toUpperCase();
+            let achouData = false;
+
+            for (let l of linhas) {
+                if (l.toUpperCase().includes(mesAnterior) && l.includes('/')) {
+                    achouData = true;
+                    break;
+                }
+            }
+            rmaPendente = !achouData;
+            console.log("Verificando mês: " + mesAnterior + " | Status: " + (achouData ? "OK" : "PENDENTE"));
+        }
+
+        const card = document.getElementById('card-rma');
+        if (card) {
+            rmaPendente ? card.classList.add('alerta-vencido') : card.classList.remove('alerta-vencido');
+        }
+    } catch (e) { console.error("Erro RMA:", e); }
+}
+
+// --- INICIALIZAÇÃO ---
+window.onload = () => {
+    verificarPendenciasRMA();
+    setInterval(verificarPendenciasRMA, 60000);
+};
 
 window.onclick = (e) => { 
     if(e.target.id == 'modalUniversal') fecharModal(); 

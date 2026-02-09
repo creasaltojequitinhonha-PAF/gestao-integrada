@@ -1,9 +1,9 @@
-// --- CONFIGURAÇÃO DO RMA ---
-const LINK_PLANILHA_STATUS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNo1Y9qY1yAnErz_e1s26mpUD6vGxvzfsWbB0fwDxkQf9LadfBouevcOopjdJSZHIPR7vEnG39eDtx/pub?gid=641766743&single=true&output=csv";
+// --- CONFIGURAÇÃO ---
+const LINK_PLANILHA_STATUS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNo1Y9qY1yAnErz_e1s26mpUD6vGxvzfsWbB0fwDxkQf9LadfBouevcOopjdJSZHIPR7vEnG39eDtx/pub?gid=1540001503&single=true&output=csv";
 const MESES_NOMES = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
-
 let rmaPendente = false; 
 
+// --- MENUS DO PORTAL ---
 const menus = {
     paefi_unificado: {
         titulo: "PAEFI - Gestão, Registro Simplificado e Acolhida",
@@ -97,10 +97,8 @@ const menus = {
 // --- FUNÇÕES DE INTERFACE ---
 function filtrarAvancado() {
     const termo = document.getElementById('searchInput').value.toLowerCase();
-    const cards = document.querySelectorAll('.service-card');
-    cards.forEach(card => {
-        const txt = card.innerText.toLowerCase();
-        card.style.display = txt.includes(termo) ? "flex" : "none";
+    document.querySelectorAll('.service-card').forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(termo) ? "flex" : "none";
     });
 }
 
@@ -119,46 +117,67 @@ function abrirModal(tipo) {
     document.getElementById('modalUniversal').style.display = 'flex';
 }
 
-function fecharModal() { 
-    document.getElementById('modalUniversal').style.display = 'none'; 
-}
+function fecharModal() { document.getElementById('modalUniversal').style.display = 'none'; }
 
-// --- LÓGICA DO PULSAR (RMA) ---
+// --- LÓGICA DO RMA (O BOOOM CORRIGIDO) ---
 async function verificarPendenciasRMA() {
+    const card = document.getElementById('card-rma');
+    const btn = document.querySelector('.btn-atualizar');
+    
+    if(btn) btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> Atualizando...';
+
     try {
-        const resposta = await fetch(LINK_PLANILHA_STATUS + "&t=" + new Date().getTime());
-        const csv = await resposta.text();
+        // Força o Google a entregar dados novos
+        const urlFinal = LINK_PLANILHA_STATUS + "&cache_ignore=" + Date.now();
+        const resposta = await fetch(urlFinal);
+        if (!resposta.ok) throw new Error("Erro ao acessar planilha");
+
+        const csv = await resposta.text(); // Corrigido de 'response' para 'resposta'
         const linhas = csv.split(/\r?\n/);
         
-        const dataAtual = new Date();
-        const mesAtualIndex = dataAtual.getMonth();
-        const diaDoMes = dataAtual.getDate(); // Pega o dia de hoje
+        const hoje = new Date();
+        const dia = hoje.getDate();
+        const mesAtualIndex = hoje.getMonth(); 
 
-        // NOVA REGRA: 
-        // 1. Se for Janeiro, não pulsa (ano anterior).
-        // 2. Se for qualquer outro mês, só pulsa se já for DIA 8 ou mais.
-        if (mesAtualIndex === 0 || diaDoMes < 8) {
+        // Se for Janeiro ou antes do dia 8, ninguém pulsa.
+        if (mesAtualIndex === 0 || dia < 8) {
+            if (card) card.classList.remove('alerta-vencido');
             rmaPendente = false;
-            console.log("Pulsar desativado: aguardando prazo do dia 08.");
-        } else {
-            const mesAnterior = MESES_NOMES[mesAtualIndex - 1].toUpperCase();
-            let achouData = false;
+            return;
+        }
 
-            for (let l of linhas) {
-                if (l.toUpperCase().includes(mesAnterior) && l.includes('/')) {
-                    achouData = true;
-                    break;
-                }
+        const mesAnterior = MESES_NOMES[mesAtualIndex - 1];
+        
+        // --- CONTAGEM FLEXÍVEL ---
+        let enviosComData = 0;
+
+        for (let linha of linhas) {
+            const l = linha.toUpperCase();
+            // Critério: A linha precisa ter o nome do mês anterior E o símbolo "/" de data
+            if (l.includes(mesAnterior) && linha.includes('/')) {
+                enviosComData++;
             }
-            rmaPendente = !achouData;
-            console.log("Verificando mês: " + mesAnterior + " | Status: " + (achouData ? "OK" : "PENDENTE"));
         }
 
-        const card = document.getElementById('card-rma');
+        // Se encontrar 5 ou mais ocorrências (uma para cada município), para de pulsar
+        const regionalCompleta = (enviosComData >= 5);
+        rmaPendente = !regionalCompleta;
+
         if (card) {
-            rmaPendente ? card.classList.add('alerta-vencido') : card.classList.remove('alerta-vencido');
+            if (regionalCompleta) {
+                card.classList.remove('alerta-vencido');
+                console.log("✅ Regional OK: " + enviosComData + " datas encontradas para " + mesAnterior);
+            } else {
+                card.classList.add('alerta-vencido');
+                console.warn("⚠️ Pendência: Apenas " + enviosComData + " de 5 municípios preencheram a data.");
+            }
         }
-    } catch (e) { console.error("Erro RMA:", e); }
+
+    } catch (erro) {
+        console.error("Falha na verificação:", erro);
+    } finally {
+        if(btn) btn.innerHTML = '<i class="fa-solid fa-sync"></i> Atualizar Status RMA';
+    }
 }
 
 // --- INICIALIZAÇÃO ---
@@ -167,64 +186,4 @@ window.onload = () => {
     setInterval(verificarPendenciasRMA, 60000);
 };
 
-window.onclick = (e) => { 
-    if(e.target.id == 'modalUniversal') fecharModal(); 
-};
-// ==========================================
-// CONFIGURAÇÃO FIREBASE (PAF)
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyBnHxMaz-JoMuFmz80kD9SDLAOYH0w_Sps",
-  authDomain: "sistema-creas-paf.firebaseapp.com",
-  projectId: "sistema-creas-paf",
-  storageBucket: "sistema-creas-paf.appspot.com",
-  messagingSenderId: "57137105910",
-  appId: "1:57137105910:web:690ebff3cbad88e283527"
-};
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-const db = firebase.firestore();
-const CHAVE_COLECAO = "pacientes_paf";
-let mapaPacientes = {};
-
-// ==========================================
-// FUNÇÃO PARA LISTAR TODOS OS REGISTROS
-// ==========================================
-async function listarPacientes() {
-    const datalist = document.getElementById('lista-pacientes');
-    if (!datalist) return;
-    
-    try {
-        // Busca direta no servidor para evitar cache incompleto
-        const snapshot = await db.collection(CHAVE_COLECAO).get({ source: 'server' });
-        
-        datalist.innerHTML = ''; 
-        mapaPacientes = {}; 
-        
-        snapshot.forEach(doc => {
-            const p = doc.data();
-            // Pega o nome do responsável familiar
-            const nome = (p.inputs && p.inputs.resp_familiar) ? p.inputs.resp_familiar : (p.resp_familiar || "Sem Nome");
-            const textoBusca = `${nome.toUpperCase()} - CPF: ${doc.id}`;
-            
-            const option = document.createElement('option');
-            option.value = textoBusca;
-            datalist.appendChild(option);
-            
-            mapaPacientes[textoBusca] = doc.id;
-        });
-        console.log(`✅ Sucesso: ${snapshot.size} registros carregados do PAF.`);
-    } catch (e) { 
-        console.error("Erro ao carregar banco de dados:", e); 
-    }
-}
-
-// Chame a listagem também no carregamento
-const originalOnload = window.onload;
-window.onload = () => {
-    if (originalOnload) originalOnload();
-    listarPacientes();
-};
+window.onclick = (e) => { if(e.target.id == 'modalUniversal') fecharModal(); };

@@ -9,7 +9,8 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+   <link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
 </head>
 <body>
 
@@ -34,7 +35,11 @@
             <input type="text" id="searchInput" onkeyup="filtrarAvancado()" placeholder="Pesquisar serviço, cidade ou documento...">
         </div>
     </div>
-
+<div class="update-area" style="text-align: center; margin-bottom: 10px;">
+    <button onclick="verificarPendenciasRMA()" class="btn-atualizar">
+        <i class="fa-solid fa-sync"></i> Atualizar Status RMA
+    </button>
+</div>
     <main class="portal-grid">
         <a href="https://creasaltojequitinhonha-paf.github.io/sistema-paf-creas/" class="service-card" target="_blank">
             <div class="icon-box"><i class="fa-solid fa-file-invoice"></i></div>
@@ -81,10 +86,13 @@
             <span>Controle de<br>Ofícios 2026</span>
         </div>
 
-        <div class="service-card" onclick="abrirModal('rma')">
-            <div class="icon-box"><i class="fa-solid fa-chart-line"></i></div>
-            <span>Controle RMA</span>
-        </div>
+        <div id="card-rma" class="service-card" onclick="abrirModal('rma')">
+    <div class="icon-box">
+        <i class="fa-solid fa-chart-line"></i>
+    </div>
+    <span>Controle RMA</span>
+</div>
+        
 
         <div class="service-card" onclick="abrirModal('contatos')">
             <div class="icon-box"><i class="fa-solid fa-address-book"></i></div>
@@ -118,5 +126,6 @@
 </div>
 
 <script src="script.js"></script>
+<script type="text/javascript" src="js/script.js"></script>
 </body>
 </html>

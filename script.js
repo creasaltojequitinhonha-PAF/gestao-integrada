@@ -170,3 +170,61 @@ window.onload = () => {
 window.onclick = (e) => { 
     if(e.target.id == 'modalUniversal') fecharModal(); 
 };
+// ==========================================
+// CONFIGURAÇÃO FIREBASE (PAF)
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBnHxMaz-JoMuFmz80kD9SDLAOYH0w_Sps",
+  authDomain: "sistema-creas-paf.firebaseapp.com",
+  projectId: "sistema-creas-paf",
+  storageBucket: "sistema-creas-paf.appspot.com",
+  messagingSenderId: "57137105910",
+  appId: "1:57137105910:web:690ebff3cbad88e283527"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.firestore();
+const CHAVE_COLECAO = "pacientes_paf";
+let mapaPacientes = {};
+
+// ==========================================
+// FUNÇÃO PARA LISTAR TODOS OS REGISTROS
+// ==========================================
+async function listarPacientes() {
+    const datalist = document.getElementById('lista-pacientes');
+    if (!datalist) return;
+    
+    try {
+        // Busca direta no servidor para evitar cache incompleto
+        const snapshot = await db.collection(CHAVE_COLECAO).get({ source: 'server' });
+        
+        datalist.innerHTML = ''; 
+        mapaPacientes = {}; 
+        
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            // Pega o nome do responsável familiar
+            const nome = (p.inputs && p.inputs.resp_familiar) ? p.inputs.resp_familiar : (p.resp_familiar || "Sem Nome");
+            const textoBusca = `${nome.toUpperCase()} - CPF: ${doc.id}`;
+            
+            const option = document.createElement('option');
+            option.value = textoBusca;
+            datalist.appendChild(option);
+            
+            mapaPacientes[textoBusca] = doc.id;
+        });
+        console.log(`✅ Sucesso: ${snapshot.size} registros carregados do PAF.`);
+    } catch (e) { 
+        console.error("Erro ao carregar banco de dados:", e); 
+    }
+}
+
+// Chame a listagem também no carregamento
+const originalOnload = window.onload;
+window.onload = () => {
+    if (originalOnload) originalOnload();
+    listarPacientes();
+};

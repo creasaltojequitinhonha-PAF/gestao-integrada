@@ -31,9 +31,12 @@
     <div class="search-area">
         <div class="search-wrapper">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="searchInput" onkeyup="filtrarAvancado()" placeholder="Pesquisar serviço, cidade ou documento...">
+            <input type="text" id="searchInput" list="lista-pacientes" onkeyup="filtrarAvancado()" placeholder="Pesquisar serviço, cidade ou paciente...">
+            <datalist id="lista-pacientes"></datalist>
         </div>
     </div>
+
+    
 
     <main class="portal-grid">
         <a href="https://creasaltojequitinhonha-paf.github.io/sistema-paf-creas/" class="service-card" target="_blank">
@@ -47,9 +50,9 @@
         </div>
 
         <a href="https://drive.google.com/drive/folders/1rBJ3WAoE2K9d_4_QcxGeaD1XoyA1fMux" class="service-card" target="_blank">
-    <div class="icon-box"><i class="fa-solid fa-folder-open"></i></div>
-    <span>CREAS Público</span>
-</a>
+            <div class="icon-box"><i class="fa-solid fa-folder-open"></i></div>
+            <span>CREAS Público</span>
+        </a>
 
         <div class="service-card" onclick="abrirModal('judicial')">
             <div class="icon-box"><i class="fa-solid fa-gavel"></i></div>
@@ -81,8 +84,10 @@
             <span>Controle de<br>Ofícios 2026</span>
         </div>
 
-        <div class="service-card" onclick="abrirModal('rma')">
-            <div class="icon-box"><i class="fa-solid fa-chart-line"></i></div>
+        <div id="card-rma" class="service-card" onclick="abrirModal('rma')">
+            <div class="icon-box">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
             <span>Controle RMA</span>
         </div>
 
@@ -105,7 +110,6 @@
             <div class="icon-box"><i class="fa-solid fa-robot"></i></div>
             <span>Ajuda com IA<br>(Gemini)</span>
         </div>
-
     </main>
 </div>
 
@@ -117,6 +121,7 @@
     </div>
 </div>
 
-<script src="script.js"></script>
-</body>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="script.js"></script> </body>
 </html>

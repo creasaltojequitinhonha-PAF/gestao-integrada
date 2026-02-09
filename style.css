@@ -262,3 +262,63 @@ body {
 .modal-option i { margin-right: 15px; color: var(--primary-blue); width: 25px; text-align: center; }
 .modal-option:hover { background: var(--primary-blue); color: white; }
 .modal-option:hover i { color: white; }
+
+/* --- ESTILO PARA O CARD RMA PULSAR --- */
+
+/* Esta é a classe que o seu JS adiciona quando rmaPendente = true */
+.alerta-vencido {
+    position: relative;
+    border: 2px solid #ef4444 !important; /* Borda vermelha forte */
+    animation: pulso-rma 2s infinite;      /* Chama a animação abaixo */
+    background-color: #fff1f2 !important; /* Fundo levemente avermelhado */
+}
+
+/* Criando a animação do pulso */
+@keyframes pulso-rma {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        transform: scale(1);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+        transform: scale(1.02); /* Aumenta levemente o tamanho */
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        transform: scale(1);
+    }
+}
+
+/* Opcional: Estilo para a Badge (etiqueta) dentro do modal */
+.badge-pendente {
+    background-color: #ef4444;
+    color: white;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+.btn-atualizar {
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-atualizar:hover {
+    background-color: var(--dark-blue);
+    transform: scale(1.05);
+}
+
+/* Efeito de girar o ícone ao clicar */
+.btn-atualizar:active i {
+    transform: rotate(180deg);
+    transition: 0.2s;
+}

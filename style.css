@@ -322,3 +322,12 @@ body {
     transform: rotate(180deg);
     transition: 0.2s;
 }
+/* Adicione isso ao seu style.css da Gestão Integrada */
+.card-almox {
+    background-color: #f0f7ff; /* Um azul bem clarinho */
+    border: 1px solid #cce3ff;
+}
+
+.card-almox i {
+    color: #2563eb; /* Ícone azul destacado */
+}

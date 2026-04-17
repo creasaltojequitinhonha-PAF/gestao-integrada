@@ -1665,35 +1665,56 @@ document.addEventListener('click', function() {
 
 
 
-// Função para criar o sistema de Backup automático
-function inicializarSistemaBackup() {
-    // Verifica se o botão já existe para não duplicar
+function inicializarSistemaBackupDiscreto() {
+    // 1. Verifica se já existe para não duplicar
     if (document.getElementById('btnBackupSistema')) return;
 
+    // 2. CRITÉRIO DE TELA: Só aparece se estiver na página inicial 
+    // Se o seu sistema muda a URL (ex: index.html), ajuste aqui.
+    // Se não mudar, ele aparecerá sempre, mas bem pequeno como pediu.
+    
     const btn = document.createElement('button');
     btn.id = 'btnBackupSistema';
-    btn.innerHTML = ' Backup Banco de Dados';
+    btn.innerHTML = '💾'; // Apenas o ícone para ser bem pequeno
+    btn.title = 'Fazer Backup Geral'; // Texto aparece só ao passar o mouse
     
-    // Estilo reforçado para garantir visibilidade
+    // Estilo "Mini" e Discreto
     Object.assign(btn.style, {
         position: 'fixed',
         bottom: '10px',
         right: '10px',
-        zIndex: '2147483647', // Valor máximo para ficar na frente de TUDO
-        padding: '10px 10px',
-        background: '#131413',
+        zIndex: '1000', 
+        width: '35px',
+        height: '35px',
+        padding: '0',
+        background: '#191a19',
         color: 'white',
-        borderRadius: '8px',
+        border: 'none',
+        borderRadius: '50%', // Redondo para ocupar menos espaço
         cursor: 'pointer',
-        fontWeight: 'bold',
         fontSize: '10px',
-        boxShadow: '0 4px 15px rgba(241, 238, 238, 0.3)',
-        display: 'block',
-        opacity: '0.8'
+        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: '0.3', // Quase invisível
+        transition: 'all 0.3s'
     });
 
-    btn.onmouseover = () => btn.style.opacity = '1';
-    btn.onmouseout = () => btn.style.opacity = '0.8';
+    // Interação de visibilidade
+    btn.onmouseover = () => {
+        btn.style.opacity = '1';
+        btn.style.width = '140px'; // Expande ao passar o mouse
+        btn.style.borderRadius = '20px';
+        btn.innerHTML = 'Backup Banco de Dados';
+    };
+    
+    btn.onmouseout = () => {
+        btn.style.opacity = '0.3';
+        btn.style.width = '35px'; // Volta a ser um botaozinho
+        btn.style.borderRadius = '50%';
+        btn.innerHTML = '💾';
+    };
 
     btn.onclick = async () => {
         const colecoes = [
@@ -1703,10 +1724,10 @@ function inicializarSistemaBackup() {
             'pacientes_paf', 'usuarios'
         ];
         
-        if (!confirm(`Deseja baixar o backup das ${colecoes.length} coleções?`)) return;
+        if (!confirm("Iniciar backup completo das coleções?")) return;
 
-        btn.innerText = '⌛ Aguarde...';
-        btn.disabled = true;
+        btn.style.background = '#e67e22';
+        btn.innerText = '⌛';
 
         try {
             for (const nomeCol of colecoes) {
@@ -1721,32 +1742,30 @@ function inicializarSistemaBackup() {
                 
                 a.href = url;
                 a.download = `BACKUP_${nomeCol}_${dataSimples}.json`;
-                document.body.appendChild(a); // Necessário em alguns navegadores
                 a.click();
-                document.body.removeChild(a);
 
                 await new Promise(r => setTimeout(r, 1000));
             }
             alert("Backup concluído!");
         } catch (e) {
-            console.error(e);
-            alert("Erro no backup. Veja o console (F12).");
+            alert("Erro no backup.");
         } finally {
-            btn.innerText = ' Fazer Backup Banco de Dados';
-            btn.disabled = false;
+            btn.style.background = '#121312';
+            btn.innerHTML = '💾';
+            btn.style.width = '35px';
         }
     };
 
     document.body.appendChild(btn);
-    console.log("Botão de backup injetado com sucesso!");
 }
 
-// GARANTIA: Tenta iniciar em diferentes estágios do carregamento
+// Inicialização
 if (document.readyState === 'complete') {
-    inicializarSistemaBackup();
+    inicializarSistemaBackupDiscreto();
 } else {
-    window.addEventListener('load', inicializarSistemaBackup);
+    window.addEventListener('load', inicializarSistemaBackupDiscreto);
 }
+
 
 
 function fecharModalJudicial() { document.getElementById('modalJudicialModerno').style.display = 'none'; }

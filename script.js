@@ -948,10 +948,139 @@ function verificarCompromissosHoje() {
     if (paraHoje.length > 0) {
         tocarSomAviso();
         setTimeout(() => {
-            alert(`📢 AGENDA INFORMA:\n\nVocê tem ${paraHoje.length} compromisso(s) para HOJE!\nAs linhas foram destacadas em LARANJA na sua tabela.`);
+            // 1. Injeta os estilos CSS do aviso centralizado e do fundo escuro se eles ainda não existirem
+            if (!document.getElementById('estilos-notificacao-agenda-centro')) {
+                const estilos = document.createElement('style');
+                estilos.id = 'estilos-notificacao-agenda-centro';
+                estilos.innerHTML = `
+                    #overlay-notificacao-agenda {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background: rgba(0, 0, 0, 0.4); /* Fundo escurecido suave */
+                        backdrop-filter: blur(4px); /* Efeito de desfoque ao fundo */
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        animation: fadeInOverlayAgenda 0.3s ease forwards;
+                    }
+                    .notificacao-agenda-centro {
+                        background: #ffffff;
+                        color: #2d3436;
+                        padding: 30px;
+                        border-radius: 16px;
+                        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+                        border-top: 8px solid #e67e22; /* Barra superior laranja de destaque */
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        max-width: 480px;
+                        width: 90%;
+                        text-align: center;
+                        position: relative;
+                        animation: scaleInAgenda 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                    }
+                    .notificacao-agenda-centro.esconder {
+                        animation: scaleOutAgenda 0.3s ease forwards;
+                    }
+                    #overlay-notificacao-agenda.esconder-overlay {
+                        animation: fadeOutOverlayAgenda 0.3s ease forwards;
+                    }
+                    .notificacao-agenda-centro-icone {
+                        font-size: 45px;
+                        margin-bottom: 15px;
+                        display: inline-block;
+                        animation: balancoIcone 1s ease infinite alternate;
+                    }
+                    .notificacao-agenda-centro-titulo {
+                        font-size: 20px;
+                        font-weight: bold;
+                        color: #2d3436;
+                        margin-bottom: 12px;
+                        letter-spacing: 0.5px;
+                    }
+                    .notificacao-agenda-centro-texto {
+                        font-size: 15px;
+                        line-height: 1.6;
+                        color: #55595c;
+                        margin-bottom: 22px;
+                    }
+                    .notificacao-agenda-centro-btn {
+                        background: #e67e22;
+                        color: #ffffff;
+                        border: none;
+                        padding: 12px 35px;
+                        font-size: 15px;
+                        font-weight: 600;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        transition: background 0.2s, transform 0.1s;
+                        box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+                    }
+                    .notificacao-agenda-centro-btn:hover {
+                        background: #d35400;
+                    }
+                    .notificacao-agenda-centro-btn:active {
+                        transform: scale(0.98);
+                    }
+                    @keyframes fadeInOverlayAgenda {
+                        to { opacity: 1; }
+                    }
+                    @keyframes fadeOutOverlayAgenda {
+                        to { opacity: 0; }
+                    }
+                    @keyframes scaleInAgenda {
+                        from { transform: scale(0.8); opacity: 0; }
+                        to { transform: scale(1); opacity: 1; }
+                    }
+                    @keyframes scaleOutAgenda {
+                        to { transform: scale(0.8); opacity: 0; }
+                    }
+                    @keyframes balancoIcone {
+                        from { transform: rotate(-5deg); }
+                        to { transform: rotate(5deg); }
+                    }
+                `;
+                document.head.appendChild(estilos);
+            }
+
+            // 2. Cria o elemento de fundo (Overlay)
+            const overlay = document.createElement('div');
+            overlay.id = 'overlay-notificacao-agenda';
+
+            // 3. Cria a caixa da mensagem centralizada
+            const divNotificacao = document.createElement('div');
+            divNotificacao.className = 'notificacao-agenda-centro';
+            
+            divNotificacao.innerHTML = `
+                <div class="notificacao-agenda-centro-icone">📢</div>
+                <div class="notificacao-agenda-centro-titulo">AGENDA INFORMA</div>
+                <div class="notificacao-agenda-centro-texto">
+                    Você tem <span style="color: #e67e22; font-weight: bold; font-size: 17px;">${paraHoje.length} compromisso(s)</span> para HOJE!<br>
+                    As linhas foram destacadas em <span style="color: #e67e22; font-weight: bold;">LARANJA</span> na sua agenda.
+                </div>
+                <button class="notificacao-agenda-centro-btn" id="btn-fechar-agenda-aviso">Entendido</button>
+            `;
+
+            // 4. Junta os elementos e coloca na página
+            overlay.appendChild(divNotificacao);
+            document.body.appendChild(overlay);
+
+            // 5. Função interna para fechar com animação suave ao clicar no botão
+            document.getElementById('btn-fechar-agenda-aviso').addEventListener('click', () => {
+                divNotificacao.classList.add('esconder');
+                overlay.classList.add('esconder-overlay');
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300);
+            });
+
         }, 1000);
     }
 }
+
 
 function tocarSomAviso() {
     try {

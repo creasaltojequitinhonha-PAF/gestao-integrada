@@ -940,6 +940,7 @@ function mudarPaginaAgenda(valor) {
     paginaAtualAgenda += valor;
     carregarDadosAgendaReal();
 }
+//Aviso mensagem de compromisso 
 
 function verificarCompromissosHoje() {
     const hojeStr = new Date().toLocaleDateString('pt-BR');
@@ -1105,7 +1106,6 @@ function verificarCompromissosHoje() {
     }
 }
 
-
 function tocarSomAviso() {
     try {
         const audio = new Audio('https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3');
@@ -1176,10 +1176,11 @@ function mostrarModalFormAgenda(titulo, dados = null) {
 async function salvarAgendaFirebase() {
     const dataInput = document.getElementById('f_ag_data').value; // Formato AAAA-MM-DD
     const horaInput = document.getElementById('f_ag_hora').value;
+    const eventoInput = document.getElementById('f_ag_evento').value;
 
-    // VALIDAÇÃO BÁSICA
-    if (!dataInput || !horaInput || !document.getElementById('f_ag_evento').value) {
-        alert("⚠️ Por favor, preencha Evento, Data e Hora!");
+    // VALIDAÇÃO BÁSICA COM EVENTO E DATA VISUAIS MODERNOS
+    if (!dataInput || !horaInput || !eventoInput) {
+        mostrarAvisoCampos("Campos Obrigatórios", "Por favor, preencha o <strong>Evento, Data e Hora</strong> antes de continuar.");
         return;
     }
 
@@ -1189,7 +1190,7 @@ async function salvarAgendaFirebase() {
 
     const dados = {
         status: document.getElementById('f_ag_status').value,
-        evento: document.getElementById('f_ag_evento').value,
+        evento: eventoInput,
         municipio: document.getElementById('f_ag_municipio').value,
         data: dataBR,
         horario: horaInput,
@@ -1202,22 +1203,31 @@ async function salvarAgendaFirebase() {
     try {
         if (idAgendaEdicao) {
             await db.collection("agenda_geral").doc(idAgendaEdicao).update(dados);
+            mostrarNotificacaoSucesso("Agenda updated com sucesso!");
         } else {
             await db.collection("agenda_geral").add(dados);
+            mostrarNotificacaoSucesso("Novo compromisso cadastrado!");
         }
-        alert("✅ Agenda atualizada!");
         fecharModalCadastro();
-    } catch (e) { alert("Erro ao salvar."); }
+    } catch (e) { 
+        mostrarToast("Erro ao salvar.", "#e74c3c"); 
+    }
 }
 
 async function excluirAgendaFirebase() {
-    if (confirm("Deseja excluir permanentemente?")) {
-        try {
-            await db.collection("agenda_geral").doc(idAgendaEdicao).delete();
-            alert("🗑️ Removido!");
-            fecharModalCadastro();
-        } catch (e) { alert("Erro ao excluir."); }
-    }
+    confirmarAcaoPersonalizada(
+        "Excluir Compromisso?", 
+        "Deseja mesmo excluir este compromisso permanentemente do sistema?", 
+        async () => {
+            try {
+                await db.collection("agenda_geral").doc(idAgendaEdicao).delete();
+                mostrarNotificacaoSucesso("Compromisso removido com sucesso!");
+                fecharModalCadastro();
+            } catch (e) { 
+                mostrarToast("Erro ao excluir.", "#e74c3c"); 
+            }
+        }
+    );
 }
 
 let idAgendaEdicao = null;
@@ -1230,7 +1240,6 @@ async function prepararEdicaoAgenda(id) {
 
 
 // Código usado para configurar a logica de salvamento direto no FIREBASE
-
 
 
 function mostrarToast(mensagem, cor = "#2d3436") {
@@ -1247,7 +1256,6 @@ function mostrarToast(mensagem, cor = "#2d3436") {
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000); // Remove após 3 segundos
 }
-
 
 
 window.salvarNoFirebase = async function() {
@@ -1307,6 +1315,125 @@ window.salvarNoFirebase = async function() {
         btnSalvar.innerText = textoOriginal;
     }
 };
+
+
+// ==========================================
+// FUNÇÕES AUXILIARES DE NOTIFICAÇÕES MODERNAS
+// ==========================================
+
+function mostrarNotificacaoSucesso(mensagem) {
+    const existente = document.getElementById('toast-sucesso-agenda');
+    if (existente) existente.remove();
+
+    if (!document.getElementById('estilos-toast-sucesso')) {
+        const estilos = document.createElement('style');
+        estilos.id = 'estilos-toast-sucesso';
+        estilos.innerHTML = `
+            #toast-sucesso-agenda {
+                position: fixed; bottom: 20px; right: 20px;
+                background: #2ecc71; color: white; padding: 12px 25px;
+                border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                font-family: 'Segoe UI', sans-serif; font-size: 14px;
+                font-weight: 600; z-index: 10005; display: flex;
+                align-items: center; gap: 10px; transform: translateY(100px);
+                opacity: 0; animation: slideInToast 0.3s ease forwards;
+            }
+            #toast-sucesso-agenda.esconder { animation: slideOutToast 0.3s ease forwards; }
+            @keyframes slideInToast { to { transform: translateY(0); opacity: 1; } }
+            @keyframes slideOutToast { to { transform: translateY(100px); opacity: 0; } }
+        `;
+        document.head.appendChild(estilos);
+    }
+
+    const toast = document.createElement('div');
+    toast.id = 'toast-sucesso-agenda';
+    toast.innerHTML = `<span>✅</span> <span>${mensagem}</span>`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('esconder');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+function confirmarAcaoPersonalizada(titulo, texto, acaoConfirmada) {
+    if (!document.getElementById('estilos-modal-confirmacao')) {
+        const estilos = document.createElement('style');
+        estilos.id = 'estilos-modal-confirmacao';
+        estilos.innerHTML = `
+            #overlay-confirmacao {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);
+                z-index: 10001; display: flex; align-items: center; justify-content: center;
+                opacity: 0; animation: fadeInOverlayAgenda 0.3s ease forwards;
+            }
+            .modal-confirmacao-caixa {
+                background: #ffffff; padding: 25px; border-radius: 16px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25); border-top: 8px solid #e74c3c;
+                font-family: 'Segoe UI', sans-serif; max-width: 400px; width: 90%; text-align: center;
+                animation: scaleInAgenda 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            }
+            .btn-confirma-sim { background: #e74c3c; color: white; border: none; padding: 11px 22px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+            .btn-confirma-sim:hover { background: #c0392b; }
+            .btn-confirma-nao { background: #b2bec3; color: #2d3436; border: none; padding: 11px 22px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+            .btn-confirma-nao:hover { background: #636e72; color: white; }
+        `;
+        document.head.appendChild(estilos);
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'overlay-confirmacao';
+
+    const caixa = document.createElement('div');
+    caixa.className = 'modal-confirmacao-caixa';
+    caixa.innerHTML = `
+        <div style="font-size: 35px; margin-bottom: 10px;">⚠️</div>
+        <h3 style="margin: 0 0 10px 0; color: #2d3436;">${titulo}</h3>
+        <p style="font-size: 14px; color: #636e72; margin-bottom: 25px; line-height: 1.5;">${texto}</p>
+        <div style="display: flex; justify-content: center; gap: 15px;">
+            <button class="btn-confirma-nao" id="btn-confirma-nao">Cancelar</button>
+            <button class="btn-confirma-sim" id="btn-confirma-sim">Confirmar</button>
+        </div>
+    `;
+
+    overlay.appendChild(caixa);
+    document.body.appendChild(overlay);
+
+    const fechar = () => overlay.remove();
+    document.getElementById('btn-confirma-nao').onclick = fechar;
+    document.getElementById('btn-confirma-sim').onclick = () => {
+        fechar();
+        acaoConfirmada();
+    };
+}
+
+function mostrarAvisoCampos(titulo, texto) {
+    const overlay = document.createElement('div');
+    overlay.id = 'overlay-notificacao-agenda';
+
+    const divNotificacao = document.createElement('div');
+    divNotificacao.className = 'notificacao-agenda-centro';
+    divNotificacao.style.borderTop = '8px solid #f1c40f';
+
+    divNotificacao.innerHTML = `
+        <div class="notificacao-agenda-centro-icone">✏️</div>
+        <div class="notificacao-agenda-centro-titulo">${titulo}</div>
+        <div class="notificacao-agenda-centro-texto" style="margin-bottom: 20px;">
+            ${texto}
+        </div>
+        <button class="notificacao-agenda-centro-btn" style="background: #f1c40f; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3);" id="btn-fechar-alerta-campos">Entendido</button>
+    `;
+
+    overlay.appendChild(divNotificacao);
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-fechar-alerta-campos').addEventListener('click', () => {
+        divNotificacao.style.transform = 'scale(0.8)';
+        divNotificacao.style.opacity = '0';
+        divNotificacao.style.transition = '0.3s ease';
+        setTimeout(() => overlay.remove(), 250);
+    });
+}
 
 
 
@@ -1815,7 +1942,6 @@ setTimeout(verificarPendenciasRma, 2000);
 document.addEventListener('click', function() {
     setTimeout(verificarPendenciasRma, 500);
 });
-
 
 
 function inicializarSistemaBackupDiscreto() {

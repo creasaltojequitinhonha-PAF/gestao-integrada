@@ -1203,7 +1203,7 @@ async function salvarAgendaFirebase() {
     try {
         if (idAgendaEdicao) {
             await db.collection("agenda_geral").doc(idAgendaEdicao).update(dados);
-            mostrarNotificacaoSucesso("Agenda updated com sucesso!");
+            mostrarNotificacaoSucesso("Agenda atualizada com sucesso!");
         } else {
             await db.collection("agenda_geral").add(dados);
             mostrarNotificacaoSucesso("Novo compromisso cadastrado!");

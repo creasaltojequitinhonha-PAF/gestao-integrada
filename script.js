@@ -981,6 +981,9 @@ function verificarCompromissosHoje() {
                         text-align: center;
                         position: relative;
                         animation: scaleInAgenda 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                        display: flex;
+                        flex-direction: column;
+                        max-height: 85vh;
                     }
                     .notificacao-agenda-centro.esconder {
                         animation: scaleOutAgenda 0.3s ease forwards;
@@ -1005,7 +1008,7 @@ function verificarCompromissosHoje() {
                         font-size: 15px;
                         line-height: 1.6;
                         color: #55595c;
-                        margin-bottom: 22px;
+                        margin-bottom: 15px;
                     }
                     .notificacao-agenda-centro-btn {
                         background: #e67e22;
@@ -1018,6 +1021,7 @@ function verificarCompromissosHoje() {
                         cursor: pointer;
                         transition: background 0.2s, transform 0.1s;
                         box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+                        width: 100%;
                     }
                     .notificacao-agenda-centro-btn:hover {
                         background: #d35400;
@@ -1054,11 +1058,31 @@ function verificarCompromissosHoje() {
             const divNotificacao = document.createElement('div');
             divNotificacao.className = 'notificacao-agenda-centro';
             
+            // Mapeamento corrigido apontando para d.horario e d.evento conforme o seu Firestore
+            const compromissosListaHtml = paraHoje.map(d => {
+                const hora = d.horario || d.Horario || 'Agenda';
+                const desc = d.evento || 'Compromisso sem descrição';
+                
+                return `
+                    <div style="display: flex; align-items: center; gap: 10px; background: #fff5eb; border-left: 4px solid #e67e22; padding: 10px 12px; border-radius: 6px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); text-align: left;">
+                        <span style="background: #e67e22; color: white; padding: 3px 7px; border-radius: 4px; font-weight: bold; font-size: 11px; white-space: nowrap;">${hora}</span>
+                        <span style="color: #2d3436; font-size: 13px; font-weight: 500; word-break: break-word; flex: 1;">${desc}</span>
+                    </div>
+                `;
+            }).join('');
+
             divNotificacao.innerHTML = `
                 <div class="notificacao-agenda-centro-icone">📢</div>
                 <div class="notificacao-agenda-centro-titulo">AGENDA INFORMA</div>
                 <div class="notificacao-agenda-centro-texto">
-                    Você tem <span style="color: #e67e22; font-weight: bold; font-size: 17px;">${paraHoje.length} compromisso(s)</span> para HOJE!<br>
+                    Você tem <span style="color: #e67e22; font-weight: bold; font-size: 17px;">${paraHoje.length} compromisso(s)</span> para HOJE!
+                </div>
+                
+                <div style="flex: 1; overflow-y: auto; max-height: 240px; padding-right: 4px; margin-bottom: 15px; scrollbar-width: thin;">
+                    ${compromissosListaHtml}
+                </div>
+
+                <div style="font-size: 12px; color: #55595c; margin-bottom: 15px;">
                     As linhas foram destacadas em <span style="color: #e67e22; font-weight: bold;">LARANJA</span> na sua agenda.
                 </div>
                 <button class="notificacao-agenda-centro-btn" id="btn-fechar-agenda-aviso">Entendido</button>

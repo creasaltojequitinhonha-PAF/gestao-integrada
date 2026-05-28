@@ -1460,15 +1460,22 @@ function verificarCompromissosHoje() {
             const divNotificacao = document.createElement('div');
             divNotificacao.className = 'notificacao-agenda-centro';
             
-            // Mapeamento corrigido apontando para d.horario e d.evento conforme o seu Firestore
+            // Mapeamento corrigido apontando para d.horario e d.evento com a inclusão dinâmica do município
             const compromissosListaHtml = paraHoje.map(d => {
                 const hora = d.horario || d.Horario || 'Agenda';
                 const desc = d.evento || 'Compromisso sem descrição';
                 
+                // Captura o município ou cidade informado no documento do Firestore
+                const cidadeInformada = d.municipio || d.cidade || '';
+                // Se houver uma cidade informada, monta a tag sutil de exibição
+                const htmlCidade = cidadeInformada ? ` <span style="color: #7f8c8d; font-size: 11px; font-weight: normal; font-style: italic;">(${cidadeInformada})</span>` : '';
+                
                 return `
                     <div style="display: flex; align-items: center; gap: 10px; background: #fff5eb; border-left: 4px solid #e67e22; padding: 10px 12px; border-radius: 6px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); text-align: left;">
                         <span style="background: #e67e22; color: white; padding: 3px 7px; border-radius: 4px; font-weight: bold; font-size: 11px; white-space: nowrap;">${hora}</span>
-                        <span style="color: #2d3436; font-size: 13px; font-weight: 500; word-break: break-word; flex: 1;">${desc}</span>
+                        <span style="color: #2d3436; font-size: 13px; font-weight: 500; word-break: break-word; flex: 1;">
+                            ${desc}${htmlCidade}
+                        </span>
                     </div>
                 `;
             }).join('');

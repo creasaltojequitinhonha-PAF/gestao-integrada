@@ -477,12 +477,88 @@ function abrirTelaAdvogada() {
     carregarDadosJudiciaisNaTabelaReal('advogada');
 }
 
+// --- FUNÇÃO CARREGAR DADOS ADAPTADA PARA FILTROS INTELIGENTES SEM DUPLICAR ---
+
+// --- FUNÇÃO CARREGAR DADOS CORRIGIDA (FILTRO DE CIDADE + PERIÓDICOS) ---
+// --- FUNÇÃO CARREGAR DADOS HÍBRIDA (SUPORTA DADOS IMPORTADOS ANTIGOS E NOVOS) ---
 function carregarDadosJudiciaisNaTabelaReal(tipo) {
     let idInput, idFiltroCid, colecaoAtiva;
     if (tipo === 'judicial_nao_geral') {
         idInput = 'inputPesquisaNJ'; idFiltroCid = 'filtroCidadeNJ'; colecaoAtiva = "judicial_nao_geral";
     } else if (tipo === 'advogada') {
-        idInput = 'inputPesquisaAdv'; idFiltroCid = 'filtroCidadeAdvogada'; colecaoAtiva = "judicial_advogada";
+        idInput = 'inputPesquisaAdvogada'; idFiltroCid = 'filtroCidadeAdvogada'; colecaoAtiva = "judicial_advogada";
+    } else {
+        idInput = 'inputPesquisaJudicial'; idFiltroCid = 'filtroCidade'; colecaoAtiva = document.getElementById('filtroTela')?.value || "judicial";
+    }
+    
+    const termo = document.getElementById(idInput)?.value.toLowerCase() || "";
+    let filtroCidRaw = document.getElementById(idFiltroCid)?.value || "TODOS";
+    
+    const mapaCidades = { "sgrp": "São Gonçalo do Rio Preto", "couto": "Couto de Magalhães", "datas": "Datas", "gouveia": "Gouveia", "monjolos": "Monjolos", "felicio": "Felício dos Santos" };
+    const cidadeFiltroDesejada = mapaCidades[filtroCidRaw] || filtroCidRaw;
+
+    // 🌟 MÁGICA DA BUSCA HÍBRIDA:
+    // Se o filtro selecionado for Periódicos ou Protetivas, o sistema vai buscar 
+    // TANTO na coleção principal (novos registros) QUANTO na coleção antiga (dados importados)
+    let listasParaConsultar = [colecaoAtiva];
+    if (colecaoAtiva === 'judicial_periodicos' || colecaoAtiva === 'judicial_protetivas') {
+        listasParaConsultar.push('judicial'); // Adiciona a coleção principal na varredura
+    }
+
+    let todosDadosCombinados = {};
+
+    // Criamos ouvintes em tempo real para as coleções necessárias
+    listasParaConsultar.forEach(nomeColecao => {
+        db.collection(nomeColecao).onSnapshot((snapshot) => {
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const historico = d.historico_evolucao || [];
+                const nome = (d.nome || d.nomeUsuario || "").toLowerCase();
+                const proc = (d.processo || d.numeroOficio || "").toLowerCase();
+
+                // Identifica a cidade tratando acentuações e maiúsculas/minúsculas
+                const municipioBancoRaw = d.municipio || d["Município"] || d["Municípío"] || d.cidade || "";
+                const municipioBancoNormalizado = normalizarCidade(municipioBancoRaw);
+                const filtroCidadeNormalizado = normalizarCidade(cidadeFiltroDesejada);
+
+                // Se estamos buscando na lista principal 'judicial', validamos se o processo realmente pertence à aba filtrada
+                if (nomeColecao === 'judicial') {
+                    if (colecaoAtiva === 'judicial_periodicos' && !historico.some(h => String(h.status).toLowerCase() === 'periodico')) {
+                        return;
+                    }
+                    if (colecaoAtiva === 'judicial_protetivas' && !historico.some(h => String(h.status).toLowerCase() === 'protetiva')) {
+                        return;
+                    }
+                }
+
+                // Aplica o filtro de Cidade de forma idêntica ao oficial
+                let atendeFiltroCidade = (filtroCidRaw === "TODOS") || 
+                                         (filtroCidRaw === "PRAZO_CRITICO" && historico.some(h => verificarAlertaPrazo(h.data_proxima_resposta, tipo))) || 
+                                         (municipioBancoNormalizado === filtroCidadeNormalizado);
+
+                // Aplica a busca por termo (Nome ou Número)
+                if (atendeFiltroCidade && (nome.includes(termo) || proc.includes(termo))) {
+                    // Armazena usando o ID do documento para evitar qualquer duplicidade na tela
+                    todosDadosCombinados[doc.id] = { id: doc.id, ...d };
+                }
+            });
+
+            // Converte o objeto de volta para array, ordena por modificação recente e renderiza na tela
+            let arrayFinalParaExibir = Object.values(todosDadosCombinados);
+            arrayFinalParaExibir.sort((a, b) => new Date(b.data_ultima_modificacao) - new Date(a.data_ultima_modificacao));
+            
+            dadosFiltradosGlobal = arrayFinalParaExibir;
+            renderizarTabelaPaginada(tipo);
+        });
+    });
+}
+
+function carregarDadosJudiciaisNaTabelaReal(tipo) {
+    let idInput, idFiltroCid, colecaoAtiva;
+    if (tipo === 'judicial_nao_geral') {
+        idInput = 'inputPesquisaNJ'; idFiltroCid = 'filtroCidadeNJ'; colecaoAtiva = "judicial_nao_geral";
+    } else if (tipo === 'advogada') {
+        idInput = 'inputPesquisaAdvogada'; idFiltroCid = 'filtroCidadeAdvogada'; colecaoAtiva = "judicial_advogada"; // Correção cirúrgica do ID do input
     } else {
         idInput = 'inputPesquisaJudicial'; idFiltroCid = 'filtroCidade'; colecaoAtiva = document.getElementById('filtroTela')?.value || "judicial";
     }
@@ -593,9 +669,9 @@ function renderizarTabelaPaginada(tipo) {
             htmlHist += historicoParaExibir.map(h => {
                 const temAlerta = verificarAlertaPrazo(h.data_proxima_resposta, tipo);
                 let corBox = h.status === 'respondido' ? '#43ec43' : 
-             (h.status === 'periodico' ? '#FFFF00' : 
-             (h.status === 'protetiva' ? '#A28AF9' : 
-             (h.status === 'extensao' ? '#74b9ff' : '#f8f9fa')));
+                             (h.status === 'periodico' ? '#FFFF00' : 
+                             (h.status === 'protetiva' ? '#A28AF9' : 
+                             (h.status === 'extensao' ? '#74b9ff' : '#f8f9fa')));
                 
                 const backgroundStyle = temAlerta ? 'background-color: #ffeaea !important;' : `background: ${corBox};`;
                 const borderStyle = temAlerta ? 'border: 2px solid #d63031 !important;' : 'border: 1px solid rgba(0,0,0,0.05);';
@@ -623,6 +699,8 @@ function renderizarTabelaPaginada(tipo) {
 
         let colEdicao = (tipo === 'judicial_nao_geral') ? 'judicial_nao_geral' : (tipo === 'advogada' ? 'judicial_advogada' : (document.getElementById('filtroTela')?.value || "judicial"));
 
+        const nomeParaModal = (d.nome || d.nomeUsuario || d.parteUsuario || '-').replace(/'/g, "\\'");
+
         corpo.innerHTML += `
             <tr style="background: ${corLinha}; border-bottom: 1px solid #eee;">
                 <td style="padding: 12px 10px; font-weight: bold; vertical-align: top; font-size: 13px;">${d.nome || d.nomeUsuario || d.parteUsuario || '-'}</td>
@@ -631,9 +709,14 @@ function renderizarTabelaPaginada(tipo) {
                 <td style="padding: 12px 10px; text-align: center; vertical-align: top; font-size: 12px;">${d.municipio || '-'}</td>
                 <td style="padding: 8px 10px; vertical-align: top; width: 45%;">${htmlHist}</td>
                 <td style="padding: 12px 10px; text-align: center; vertical-align: top;">
-                    <button onclick="prepararEdicao('${d.id}', '${colEdicao}')" style="background: #2d3436; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </button>
+                    <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                        <button onclick="prepararEdicao('${d.id}', '${colEdicao}')" style="background: #2d3436; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;" title="Editar Processo">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="solicitarExclusaoModal('${d.id}', '${colEdicao}', '${nomeParaModal}', '${tipo}')" style="background: #2d3436; color: #ff7675; border: none; padding: 8px; border-radius: 4px; cursor: pointer;" title="Excluir Processo">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -643,7 +726,325 @@ function renderizarTabelaPaginada(tipo) {
     if (infoPagElem) infoPagElem.innerText = `Página ${paginaAtual} de ${totalPaginas}`;
 }
 
+window.solicitarExclusaoModal = (id, colecao, nomeUsuario, tipoAtual) => {
+    const existente = document.getElementById('dialogConfirmacaoExcluir');
+    if (existente) existente.remove();
 
+    const dialog = document.createElement('dialog');
+    dialog.id = 'dialogConfirmacaoExcluir';
+    
+    dialog.style.border = 'none';
+    dialog.style.borderRadius = '8px';
+    dialog.style.padding = '24px';
+    dialog.style.maxWidth = '420px';
+    dialog.style.width = '90%';
+    dialog.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+    dialog.style.textAlign = 'center';
+    dialog.style.fontFamily = 'sans-serif';
+    dialog.style.position = 'fixed';
+    dialog.style.top = '50%';
+    dialog.style.left = '50%';
+    dialog.style.transform = 'translate(-50%, -50%)';
+    dialog.style.margin = '0';
+
+    dialog.innerHTML = `
+        <div style="color: #d63031; font-size: 44px; margin-bottom: 14px;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 style="margin: 0 0 10px 0; color: #2d3436; font-size: 19px; font-weight: bold;">Confirmar Exclusão</h3>
+        <p style="margin: 0 0 24px 0; color: #636e72; font-size: 14px; line-height: 1.5; text-align: center;">
+            Tem certeza que deseja excluir permanentemente o processo de <strong>${nomeUsuario}</strong>?<br>Esta ação removerá o registro do banco de dados e não poderá ser desfeita.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="btnCancelarExclusao" style="background: #dfe6e9; color: #2d3436; border: none; padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                Cancelar
+            </button>
+            <button id="btnConfirmarExclusao" style="background: #d63031; color: white; border: none; padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                Excluir Registro
+            </button>
+        </div>
+        <style>
+            dialog::backdrop {
+                background: rgba(0, 0, 0, 0.6) !important;
+                backdrop-filter: blur(2px);
+            }
+        </style>
+    `;
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    document.getElementById('btnCancelarExclusao').onclick = () => {
+        dialog.close();
+        dialog.remove();
+    };
+
+    document.getElementById('btnConfirmarExclusao').onclick = async () => {
+        try {
+            document.getElementById('btnConfirmarExclusao').innerText = "Excluindo...";
+            document.getElementById('btnConfirmarExclusao').disabled = true;
+            
+            await db.collection(colecao).doc(id).delete();
+            
+            dialog.close();
+            dialog.remove();
+
+            // Dispara a recarga forçada da tabela com os dados corretos
+            if (typeof carregarDadosJudiciaisNaTabelaReal === "function") {
+                carregarDadosJudiciaisNaTabelaReal(tipoAtual);
+            }
+
+            if (typeof mostrarToast === "function") {
+                mostrarToast("Processo removido com sucesso!");
+            } else {
+                alert("Processo removido com sucesso!");
+            }
+        } catch (e) {
+            console.error("Erro ao deletar do Firebase:", e);
+            alert("Erro ao tentar excluir o processo. Verifique a conexão.");
+            dialog.close();
+            dialog.remove();
+        }
+    };
+};
+
+// --- FUNÇÃO DO MODAL DE EXCLUSÃO PROFISSIONAL COM ATUALIZAÇÃO EM TEMPO REAL ---
+window.solicitarExclusaoModal = (id, colecao, nomeUsuario, tipoAtual) => {
+    const existente = document.getElementById('dialogConfirmacaoExcluir');
+    if (existente) existente.remove();
+
+    const dialog = document.createElement('dialog');
+    dialog.id = 'dialogConfirmacaoExcluir';
+    
+    dialog.style.border = 'none';
+    dialog.style.borderRadius = '8px';
+    dialog.style.padding = '24px';
+    dialog.style.maxWidth = '420px';
+    dialog.style.width = '90%';
+    dialog.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+    dialog.style.textAlign = 'center';
+    dialog.style.fontFamily = 'sans-serif';
+    dialog.style.position = 'fixed';
+    dialog.style.top = '50%';
+    dialog.style.left = '50%';
+    dialog.style.transform = 'translate(-50%, -50%)';
+    dialog.style.margin = '0';
+
+    dialog.innerHTML = `
+        <div style="color: #d63031; font-size: 44px; margin-bottom: 14px;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 style="margin: 0 0 10px 0; color: #2d3436; font-size: 19px; font-weight: bold;">Confirmar Exclusão</h3>
+        <p style="margin: 0 0 24px 0; color: #636e72; font-size: 14px; line-height: 1.5; text-align: center;">
+            Tem certeza que deseja excluir permanentemente o processo de <strong>${nomeUsuario}</strong>?<br>Esta ação removerá o registro do banco de dados e não poderá ser desfeita.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="btnCancelarExclusao" style="background: #dfe6e9; color: #2d3436; border: none; padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                Cancelar
+            </button>
+            <button id="btnConfirmarExclusao" style="background: #d63031; color: white; border: none; padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                Excluir Registro
+            </button>
+        </div>
+        <style>
+            dialog::backdrop {
+                background: rgba(0, 0, 0, 0.6) !important;
+                backdrop-filter: blur(2px);
+            }
+        </style>
+    `;
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    document.getElementById('btnCancelarExclusao').onclick = () => {
+        dialog.close();
+        dialog.remove();
+    };
+
+    document.getElementById('btnConfirmarExclusao').onclick = async () => {
+        try {
+            document.getElementById('btnConfirmarExclusao').innerText = "Excluindo...";
+            document.getElementById('btnConfirmarExclusao').disabled = true;
+            
+            // Remove o documento do Firebase
+            await db.collection(colecao).doc(id).delete();
+            
+            dialog.close();
+            dialog.remove();
+
+            // 🌟 ATUALIZAÇÃO EM TEMPO REAL: Recarrega os dados imediatamente na tabela ativa
+            if (typeof carregarDadosJudiciaisNaTabelaReal === "function") {
+                carregarDadosJudiciaisNaTabelaReal(tipoAtual);
+            }
+
+            if (typeof mostrarToast === "function") {
+                mostrarToast("Processo removido com sucesso!");
+            } else {
+                alert("Processo removido com sucesso!");
+            }
+        } catch (e) {
+            console.error("Erro ao deletar do Firebase:", e);
+            alert("Erro ao tentar excluir o processo. Verifique a conexão.");
+            dialog.close();
+            dialog.remove();
+        }
+    };
+};
+
+// --- FUNÇÃO DO MODAL DE EXCLUSÃO PROFISSIONAL TOP-LAYER (IMPEDE FICAR OCULTO) ---
+window.solicitarExclusaoModal = (id, colecao, nomeUsuario) => {
+    const existente = document.getElementById('dialogConfirmacaoExcluir');
+    if (existente) existente.remove();
+
+    const dialog = document.createElement('dialog');
+    dialog.id = 'dialogConfirmacaoExcluir';
+    
+    // Estilização limpa e profissional centralizada por cima de tudo
+    dialog.style.border = 'none';
+    dialog.style.borderRadius = '8px';
+    dialog.style.padding = '24px';
+    dialog.style.maxWidth = '420px';
+    dialog.style.width = '90%';
+    dialog.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+    dialog.style.textAlign = 'center';
+    dialog.style.fontFamily = 'sans-serif';
+    dialog.style.position = 'fixed';
+    dialog.style.top = '50%';
+    dialog.style.left = '50%';
+    dialog.style.transform = 'translate(-50%, -50%)';
+    dialog.style.margin = '0';
+
+    dialog.innerHTML = `
+        <div style="color: #d63031; font-size: 44px; margin-bottom: 14px;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 style="margin: 0 0 10px 0; color: #2d3436; font-size: 19px; font-weight: bold;">Confirmar Exclusão</h3>
+        <p style="margin: 0 0 24px 0; color: #636e72; font-size: 14px; line-height: 1.5; text-align: center;">
+            Tem certeza que deseja excluir permanentemente o processo de <strong>${nomeUsuario}</strong>?<br>Esta ação removerá o registro do banco de dados e não poderá ser desfeita.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="btnCancelarExclusao" style="background: #dfe6e9; color: #2d3436; border: none; padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s;">
+                Cancelar
+            </button>
+            <button id="btnConfirmarExclusao" style="background: #d63031; color: white; border: none; padding: 10px 22px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s;">
+                Excluir Registro
+            </button>
+        </div>
+        <style>
+            dialog::backdrop {
+                background: rgba(0, 0, 0, 0.6) !important;
+                backdrop-filter: blur(2px);
+            }
+        </style>
+    `;
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+
+    document.getElementById('btnCancelarExclusao').onclick = () => {
+        dialog.close();
+        dialog.remove();
+    };
+
+    document.getElementById('btnConfirmarExclusao').onclick = async () => {
+        try {
+            document.getElementById('btnConfirmarExclusao').innerText = "Excluindo...";
+            document.getElementById('btnConfirmarExclusao').disabled = true;
+            
+            await db.collection(colecao).doc(id).delete();
+            
+            dialog.close();
+            dialog.remove();
+
+            if (typeof mostrarToast === "function") {
+                mostrarToast("Processo removido com sucesso!");
+            } else {
+                alert("Processo removido com sucesso!");
+            }
+        } catch (e) {
+            console.error("Erro ao deletar do Firebase:", e);
+            alert("Erro ao tentar excluir o processo. Verifique a conexão.");
+            dialog.close();
+            dialog.remove();
+        }
+    };
+};
+
+
+// --- FUNÇÃO DE EXCLUSÃO PROFISSIONAL CENTRALIZADA (SEM ALTERAR O VISUAL) ---
+window.solicitarExclusaoModal = (id, colecao, nomeUsuario) => {
+    // Remove qualquer dialog duplicado para não acumular lixo na memória
+    const existente = document.getElementById('dialogConfirmacaoExcluir');
+    if (existente) existente.remove();
+
+    // Cria o elemento dialog nativo que ignora qualquer barreira de z-index do layout
+    const dialog = document.createElement('dialog');
+    dialog.id = 'dialogConfirmacaoExcluir';
+    
+    // Estilização minimalista e profissional centralizada
+    dialog.style.border = 'none';
+    dialog.style.borderRadius = '8px';
+    dialog.style.padding = '24px';
+    dialog.style.maxWidth = '450px';
+    dialog.style.width = '90%';
+    dialog.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
+    dialog.style.textAlign = 'center';
+    dialog.style.fontFamily = 'sans-serif';
+
+    dialog.innerHTML = `
+        <div style="color: #d63031; font-size: 40px; margin-bottom: 12px;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 style="margin: 0 0 10px 0; color: #2d3436; font-size: 18px; font-weight: bold;">Confirmar Exclusão</h3>
+        <p style="margin: 0 0 24px 0; color: #636e72; font-size: 14px; line-height: 1.5;">
+            Tem certeza que deseja excluir permanentemente o processo de <strong>${nomeUsuario}</strong>?<br>Esta ação não poderá ser desfeita.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="btnCancelarExclusao" style="background: #dfe6e9; color: #2d3436; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                Cancelar
+            </button>
+            <button id="btnConfirmarExclusao" style="background: #d63031; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                Excluir Registro
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+    
+    // Abre como modal nativo do navegador (Garante centralização perfeita sobre toda a aplicação)
+    dialog.showModal();
+
+    // Evento para fechar e remover ao clicar em cancelar
+    document.getElementById('btnCancelarExclusao').onclick = () => {
+        dialog.close();
+        dialog.remove();
+    };
+
+    // Evento para executar a exclusão segura no Firebase
+    document.getElementById('btnConfirmarExclusao').onclick = async () => {
+        try {
+            document.getElementById('btnConfirmarExclusao').innerText = "Excluindo...";
+            document.getElementById('btnConfirmarExclusao').disabled = true;
+            
+            await db.collection(colecao).doc(id).delete();
+            
+            dialog.close();
+            dialog.remove();
+
+            if (typeof mostrarToast === "function") {
+                mostrarToast("Processo removido com sucesso!");
+            } else {
+                alert("Processo removido com sucesso!");
+            }
+        } catch (e) {
+            console.error("Erro ao deletar do Firebase:", e);
+            alert("Erro ao tentar excluir o processo. Verifique a conexão.");
+            dialog.close();
+            dialog.remove();
+        }
+    };
+};
 
 
 // --- FUNÇÃO PARA ABRIR NOVO CADASTRO ---
@@ -1203,7 +1604,7 @@ async function salvarAgendaFirebase() {
     try {
         if (idAgendaEdicao) {
             await db.collection("agenda_geral").doc(idAgendaEdicao).update(dados);
-            mostrarNotificacaoSucesso("Agenda atualizada com sucesso!");
+            mostrarNotificacaoSucesso("Agenda updated com sucesso!");
         } else {
             await db.collection("agenda_geral").add(dados);
             mostrarNotificacaoSucesso("Novo compromisso cadastrado!");
@@ -1258,61 +1659,107 @@ function mostrarToast(mensagem, cor = "#2d3436") {
 }
 
 
-window.salvarNoFirebase = async function() {
-    const btnSalvar = event.target; 
-    const textoOriginal = btnSalvar.innerText;
+// --- FUNÇÃO SALVAR ATUALIZADA COM MIGRAÇÃO E TRATAMENTO DE ABAS AUTOMÁTICO ---
+// --- FUNÇÃO SALVAR ATUALIZADA (APENAS RESPONDIDOS MUDAM DE COLEÇÃO) ---
+window.salvarNoFirebase = async () => {
     const modal = document.getElementById('modalCadastroJudicial');
-    const colecao = modal.getAttribute('data-colecao') || 'judicial';
-    const nome = document.getElementById('addNome').value.toUpperCase();
+    if (!modal) return;
     
-    if (!nome) { mostrarToast("O nome é obrigatório!", "#e74c3c"); return; }
+    const colecaoOrigem = modal.getAttribute('data-colecao') || 'judicial';
+    
+    const nome = document.getElementById('addNome').value.trim();
+    const processo = document.getElementById('addProcesso').value.trim();
+    const remetente = document.getElementById('addRemetente').value.trim();
+    const meio = document.getElementById('addMeio').value.trim();
+    const municipio = document.getElementById('addMunicipio').value.trim();
 
-    // Feedback visual imediato
-    btnSalvar.disabled = true;
-    btnSalvar.innerText = "Processando...";
+    if (!nome) { alert("O campo Nome Usuário/Família é obrigatório."); return; }
+
+    const historico = [];
+    document.querySelectorAll('.linha-data-entry').forEach(bloco => {
+        const d_rec = bloco.querySelector('.data-rec-input').value.trim();
+        const prz = bloco.querySelector('.prazo-input').value.trim();
+        const st = bloco.querySelector('.cor-input').value;
+        const resp = bloco.querySelector('.resposta-input').value.trim();
+        const prox = bloco.querySelector('.prox-resposta-input').value.trim();
+        const lnk = bloco.querySelector('.link-input').value.trim();
+        const o = bloco.querySelector('.obs-input').value.trim();
+
+        if (d_rec || prz || resp || prox || lnk || o) {
+            historico.push({
+                data_rec: d_rec,
+                prazo: prz,
+                status: st,
+                resposta: resp,
+                data_proxima_resposta: prox,
+                link: lnk,
+                obs: o
+            });
+        }
+    });
+
+    // Determina o status com base na ÚLTIMA movimentação lançada
+    let statusFinalDoProcesso = "judicial"; 
+    
+    if (historico.length > 0) {
+        const historicoOrdenadoTemp = [...historico].sort((a, b) => {
+            const conv = (s) => {
+                if (!s) return new Date(0);
+                const p = s.split('/');
+                return p.length === 3 ? new Date(p[2], p[1]-1, p[0]) : new Date(0);
+            };
+            return conv(a.data_rec) - conv(b.data_rec);
+        });
+        
+        const ultimaMovimentacaoLancada = historicoOrdenadoTemp[historicoOrdenadoTemp.length - 1];
+        const statusUltimaLinha = ultimaMovimentacaoLancada.status;
+
+        // 🌟 SÓ MOVE DE COLEÇÃO SE FOR RESPONDIDO OU DESLIGADO
+        if (statusUltimaLinha === 'respondido') {
+            statusFinalDoProcesso = "judicial_respondidos";
+        } else if (statusUltimaLinha === 'desligado') {
+            statusFinalDoProcesso = "judicial_desligados";
+        } else {
+            statusFinalDoProcesso = "judicial"; // Mantém na lista principal (mesmo se for periódico ou protetiva)
+        }
+    }
 
     const dados = {
-        remetente: document.getElementById('addRemetente').value,
-        meio_recebimento: document.getElementById('addMeio').value,
-        processo: document.getElementById('addProcesso').value,
         nome: nome,
-        municipio: document.getElementById('addMunicipio').value,
-        historico_evolucao: [],
+        processo: processo,
+        remetente: remetente,
+        meio_recebimento: meio,
+        municipio: municipio,
+        status: statusFinalDoProcesso, 
+        historico_evolucao: historico,
         data_ultima_modificacao: new Date().toISOString()
     };
 
-    document.querySelectorAll('.linha-data-entry').forEach(bloco => {
-        dados.historico_evolucao.push({
-            data_rec: bloco.querySelector('.data-rec-input').value,
-            prazo: bloco.querySelector('.prazo-input').value,
-            status: bloco.querySelector('.cor-input').value,
-            resposta: bloco.querySelector('.resposta-input').value,
-            data_proxima_resposta: bloco.querySelector('.prox-resposta-input').value,
-            link: bloco.querySelector('.link-input').value,
-            obs: bloco.querySelector('.obs-input').value
-        });
-    });
-
     try {
+        let colecaoDestinoFinal = colecaoOrigem;
+        
+        if (colecaoOrigem !== 'judicial_nao_geral' && colecaoOrigem !== 'judicial_advogada') {
+            colecaoDestinoFinal = statusFinalDoProcesso;
+        }
+
         if (idProcessoEmEdicao) {
-            await db.collection(colecao).doc(idProcessoEmEdicao).update(dados);
-            mostrarToast("Registro atualizado com sucesso!");
+            if (colecaoOrigem !== colecaoDestinoFinal) {
+                await db.collection(colecaoOrigem).doc(idProcessoEmEdicao).delete();
+                await db.collection(colecaoDestinoFinal).add(dados);
+                mostrarToast("Processo atualizado e movido de aba com sucesso!");
+            } else {
+                await db.collection(colecaoOrigem).doc(idProcessoEmEdicao).update(dados);
+                mostrarToast("Processo atualizado com sucesso!");
+            }
         } else {
-            await db.collection(colecao).add({
-                ...dados,
-                dataCriacao: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            mostrarToast("Novo processo salvo!");
+            await db.collection(colecaoDestinoFinal).add(dados);
+            mostrarToast("Novo processo cadastrado com sucesso!");
         }
         
-        fecharModalCadastro(); // Fecha o modal imediatamente
-        
+        fecharModalCadastro();
     } catch (e) {
-        console.error("Erro ao salvar:", e);
-        mostrarToast("Erro ao conectar com servidor.", "#e74c3c");
-    } finally {
-        btnSalvar.disabled = false;
-        btnSalvar.innerText = textoOriginal;
+        console.error("Erro ao salvar dados no Firebase:", e);
+        alert("Erro ao salvar dados. Por favor, verifique a sua ligação.");
     }
 };
 

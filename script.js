@@ -2501,6 +2501,92 @@ if (document.readyState === 'complete') {
 
 
 
+// ==========================================
+// MONITOR DE CONEXÃO COM A INTERNET (CREAS)
+// ==========================================
+
+function configurarMonitorConexao() {
+    // 1. Injeta os estilos CSS do aviso no topo da página
+    if (!document.getElementById('estilos-alerta-conexao')) {
+        const estilos = document.createElement('style');
+        estilos.id = 'estilos-alerta-conexao';
+        estilos.innerHTML = `
+            #alerta-conexao-creas {
+                position: fixed;
+                top: -60px; /* Começa escondido acima da tela */
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 12px 24px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 14px;
+                font-weight: 600;
+                border-radius: 0 0 8px 8px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+                z-index: 11000; /* Fica acima de modais e overlays */
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s;
+            }
+            #alerta-conexao-creas.visivel {
+                top: 0; /* Desce deslizando suavemente */
+            }
+            .icone-conexao-piscando {
+                animation: piscarAlertaConexao 1s ease infinite alternate;
+            }
+            @keyframes piscarAlertaConexao {
+                from { opacity: 0.4; }
+                to { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(estilos);
+    }
+
+    // 2. Cria o elemento HTML do alerta se ele não existir
+    let painelAlerta = document.getElementById('alerta-conexao-creas');
+    if (!painelAlerta) {
+        painelAlerta = document.createElement('div');
+        painelAlerta.id = 'alerta-conexao-creas';
+        document.body.appendChild(painelAlerta);
+    }
+
+    // 3. Função que atualiza o visual baseado no estado da internet
+    function atualizarStatusConexao() {
+        if (navigator.onLine) {
+            // Se estava offline e a internet voltou
+            if (painelAlerta.classList.contains('visivel') && painelAlerta.style.background.includes('rgb(231, 76, 60)')) {
+                painelAlerta.style.background = '#2ecc71'; // Verde de sucesso
+                painelAlerta.style.color = '#ffffff';
+                painelAlerta.innerHTML = '<span>🔄 Conexão restabelecida! Sincronizando dados...</span>';
+                
+                // Deixa o aviso verde por 3 segundos e depois esconde suavemente
+                setTimeout(() => {
+                    painelAlerta.classList.remove('visivel');
+                }, 3000);
+            }
+        } else {
+            // Se a internet caiu
+            painelAlerta.style.background = '#e74c3c'; // Vermelho de atenção
+            painelAlerta.style.color = '#ffffff';
+            painelAlerta.innerHTML = '<span class="icone-conexao-piscando">⚠️</span> <span>Sem conexão com a internet. </span>';
+            painelAlerta.classList.add('visivel');
+        }
+    }
+
+    // 4. Fica escutando os eventos nativos do navegador
+    window.addEventListener('online', atualizarStatusConexao);
+    window.addEventListener('offline', atualizarStatusConexao);
+
+    // Executa uma verificação inicial assim que o sistema abre
+    if (!navigator.onLine) {
+        atualizarStatusConexao();
+    }
+}
+
+// Inicializa o monitor automaticamente ao carregar o script
+configurarMonitorConexao();
+
+
 function fecharModalJudicial() { document.getElementById('modalJudicialModerno').style.display = 'none'; }
 function fecharModalNaoJudicial() { document.getElementById('modalNaoJudicialModerno').style.display = 'none'; }
 function fecharModalCadastro() { document.getElementById('modalCadastroJudicial').style.display = 'none'; }

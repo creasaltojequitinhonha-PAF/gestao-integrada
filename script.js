@@ -2499,8 +2499,6 @@ if (document.readyState === 'complete') {
     window.addEventListener('load', inicializarSistemaBackupDiscreto);
 }
 
-
-
 // ==========================================
 // MONITOR DE CONEXÃO COM A INTERNET (CREAS)
 // ==========================================
@@ -2585,6 +2583,477 @@ function configurarMonitorConexao() {
 
 // Inicializa o monitor automaticamente ao carregar o script
 configurarMonitorConexao();
+
+// =================================================================
+// SISTEMA DE LOGIN BLINDADO E REATIVO (FIREBASE AUTHENTICATION)
+// =================================================================
+
+function configurarSistemaLoginCREAS() {
+    // 1. Injeta os estilos CSS da tela de Login na página
+    if (!document.getElementById('estilos-tela-login')) {
+        const estilos = document.createElement('style');
+        estilos.id = 'estilos-tela-login';
+        estilos.innerHTML = `
+            #bloqueio-login-creas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: #2d3436;
+                z-index: 20000; /* Fica à frente de absolutamente tudo */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            .card-login-creas {
+                background: #ffffff;
+                padding: 35px;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                width: 100%;
+                max-width: 400px;
+                text-align: center;
+            }
+            .input-login-creas {
+                width: 100%;
+                padding: 12px;
+                margin: 10px 0;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 14px;
+                box-sizing: border-box;
+            }
+            .btn-login-creas {
+                width: 100%;
+                padding: 12px;
+                background: #394046;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 15px;
+                font-weight: bold;
+                cursor: pointer;
+                margin-top: 15px;
+                transition: background 0.2s;
+            }
+            .btn-login-creas:hover {
+                background: #4f5357;
+            }
+            .btn-login-creas:disabled {
+                background: #b2bec3;
+                cursor: not-allowed;
+            }
+        `;
+        document.head.appendChild(estilos);
+    }
+
+    // 2. Cria a estrutura HTML da tela de login se ela não existir
+    let telaLogin = document.getElementById('bloqueio-login-creas');
+    if (!telaLogin) {
+        telaLogin = document.createElement('div');
+        telaLogin.id = 'bloqueio-login-creas';
+        // Começa escondida até o Firebase checar o estado do usuário
+        telaLogin.style.display = 'none'; 
+        telaLogin.innerHTML = `
+            <div class="card-login-creas">
+                <h2 style="margin-top:0; color:#2d3436; font-size:22px; margin-bottom:5px;">CREAS REGIONAL ALTO JEQUITINHONHA</h2>
+                <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Gestão Integrada </p>
+                
+                <form id="formulario-login-creas" onsubmit="event.preventDefault();">
+                    <input type="email" id="login-email" class="input-login-creas" placeholder="E-mail funcional" required autocomplete="username">
+                    <input type="password" id="login-senha" class="input-login-creas" placeholder="Senha de acesso" required autocomplete="current-password">
+                    
+                    <div id="erro-login-creas" style="color:#d63031; font-size:13px; font-weight:600; margin-top:10px; display:none;"></div>
+                    
+                    <button type="submit" id="btn-entrar-creas" class="btn-login-creas">Entrar no Sistema</button>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(telaLogin);
+    }
+
+    // Captura os elementos internos da janela de login
+    const form = document.getElementById('formulario-login-creas');
+    const btnEntrar = document.getElementById('btn-entrar-creas');
+    const txtErro = document.getElementById('erro-login-creas');
+
+    // 3. Ação do Botão de Login (Chama a função nativa simplificada do Firebase)
+    form.addEventListener('submit', async () => {
+        const email = document.getElementById('login-email').value;
+        const senha = document.getElementById('login-senha').value;
+
+        txtErro.style.display = 'none';
+        btnEntrar.innerText = 'Autenticando...';
+        btnEntrar.disabled = true;
+
+        try {
+            // Linha única que faz a mágica no Firebase:
+            await firebase.auth().signInWithEmailAndPassword(email, senha);
+            // Se der certo, o observador abaixo (onAuthStateChanged) vai rodar e liberar a tela automaticamente!
+        } catch (erro) {
+            console.error("Erro no login: ", erro.code);
+            txtErro.style.display = 'block';
+            
+            // Tradução simples de erros comuns para a equipe
+            if (erro.code === 'auth/wrong-password' || erro.code === 'auth/user-not-found') {
+                txtErro.innerText = '⚠️ E-mail ou senha incorretos.';
+            } else if (erro.code === 'auth/invalid-email') {
+                txtErro.innerText = '⚠️ Formato de e-mail inválido.';
+            } else {
+                txtErro.innerText = '⚠️ Falha ao conectar. Verifique o acesso.';
+            }
+            
+            btnEntrar.innerText = 'Entrar no Sistema';
+            btnEntrar.disabled = false;
+        }
+    });
+
+    // 4. O OBSERVADOR INTELIGENTE: Verifica em tempo real se o usuário está logado ou não
+    firebase.auth().onAuthStateChanged((usuario) => {
+        if (usuario) {
+            // Usuário está validado! Esconde a tela de login e deixa usar o sistema
+            telaLogin.style.display = 'none';
+            console.log("Usuário autenticado com sucesso: ", usuario.email);
+        } else {
+            // Ninguém logado (ou clicou em sair). Bloqueia a tela mostrando o formulário
+            telaLogin.style.display = 'flex';
+            btnEntrar.innerText = 'Entrar no Sistema';
+            btnEntrar.disabled = false;
+            document.getElementById('login-senha').value = ''; // Limpa o campo de senha por segurança
+        }
+    });
+}
+
+// =================================================================
+// SISTEMA DE LOGIN COM MENSAGEM DE BOAS-VINDAS (FIREBASE AUTH)
+// =================================================================
+
+function configurarSistemaLoginCREAS() {
+    // 1. Injeta os estilos CSS da tela de Login na página
+    if (!document.getElementById('estilos-tela-login')) {
+        const estilos = document.createElement('style');
+        estilos.id = 'estilos-tela-login';
+        estilos.innerHTML = `
+            #bloqueio-login-creas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: #2d3436;
+                z-index: 20000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            .card-login-creas {
+                background: #ffffff;
+                padding: 35px;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                width: 100%;
+                max-width: 400px;
+                text-align: center;
+            }
+            .input-login-creas {
+                width: 100%;
+                padding: 12px;
+                margin: 10px 0;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 14px;
+                box-sizing: border-box;
+            }
+            .btn-login-creas {
+                width: 100%;
+                padding: 12px;
+                background: #424d55;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 15px;
+                font-weight: bold;
+                cursor: pointer;
+                margin-top: 15px;
+                transition: background 0.2s;
+            }
+            .btn-login-creas:hover {
+                background: #202221;
+            }
+            .btn-login-creas:disabled {
+                background: #b2bec3;
+                cursor: not-allowed;
+            }
+            
+            /* Estilos para o Toast de Boas-Vindas Geral do Sistema */
+            #toast-boas-vindas-container {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 25000;
+            }
+            .toast-boas-vindas {
+                background: #1e272e;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+                font-family: 'Inter', sans-serif;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                border-left: 5px solid #2ecc71;
+                animation: slideInToast 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOutToast 0.5s 3.5s forwards;
+            }
+            @keyframes slideInToast { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes fadeOutToast { from { opacity: 1; } to { opacity: 0; transform: translateY(10px); } }
+        `;
+        document.head.appendChild(estilos);
+    }
+
+    // 2. Cria a estrutura HTML da tela de login se ela não existir
+    let telaLogin = document.getElementById('bloqueio-login-creas');
+    if (!telaLogin) {
+        telaLogin = document.createElement('div');
+        telaLogin.id = 'bloqueio-login-creas';
+        telaLogin.style.display = 'none'; 
+        telaLogin.innerHTML = `
+
+            <div class="card-login-creas">
+            <div class="header-logo-side">
+                <img src="https://raw.githubusercontent.com/creasaltojequitinhonha-paf/sistema-paf-creas/main/logo_creas.png" alt="Logo CREAS">
+            </div>
+                <h2 style="margin-top:0; color:#2d3436; font-size:22px; margin-bottom:5px;">CREAS REGIONAL ALTO JEQUITINHONHA</h2>
+                <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Gestão Integrada </p>
+                
+                <form id="formulario-login-creas" onsubmit="event.preventDefault();">
+                    <input type="email" id="login-email" class="input-login-creas" placeholder="E-mail funcional" required autocomplete="username">
+                    <input type="password" id="login-senha" class="input-login-creas" placeholder="Senha de acesso" required autocomplete="current-password">
+                    
+                    <div id="erro-login-creas" style="color:#d63031; font-size:13px; font-weight:600; margin-top:10px; display:none;"></div>
+                    
+                    <button type="submit" id="btn-entrar-creas" class="btn-login-creas">Entrar no Sistema</button>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(telaLogin);
+    }
+
+    // Garante que o container de Toasts de boas-vindas exista no body
+    let toastContainer = document.getElementById('toast-boas-vindas-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-boas-vindas-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    const form = document.getElementById('formulario-login-creas');
+    const btnEntrar = document.getElementById('btn-entrar-creas');
+    const txtErro = document.getElementById('erro-login-creas');
+
+    // 3. Ação do Botão de Login
+    form.addEventListener('submit', async () => {
+        const email = document.getElementById('login-email').value;
+        const senha = document.getElementById('login-senha').value;
+
+        txtErro.style.display = 'none';
+        btnEntrar.innerText = 'Autenticando...';
+        btnEntrar.disabled = true;
+
+        try {
+            await firebase.auth().signInWithEmailAndPassword(email, senha);
+        } catch (erro) {
+            console.error("Erro no login: ", erro.code);
+            txtErro.style.display = 'block';
+            
+            if (erro.code === 'auth/wrong-password' || erro.code === 'auth/user-not-found') {
+                txtErro.innerText = '⚠️ E-mail ou senha incorretos.';
+            } else if (erro.code === 'auth/invalid-email') {
+                txtErro.innerText = '⚠️ Formato de e-mail inválido.';
+            } else {
+                txtErro.innerText = '⚠️ Falha ao conectar. Verifique o acesso.';
+            }
+            
+            btnEntrar.innerText = 'Entrar no Sistema';
+            btnEntrar.disabled = false;
+        }
+    });
+
+    // Variável de controle para o toast não disparar repetidamente na mesma sessão
+    let jaExibiuBoasVindas = false;
+
+    // 4. O OBSERVADOR EM TEMPO REAL
+    firebase.auth().onAuthStateChanged((usuario) => {
+        if (usuario) {
+            telaLogin.style.display = 'none';
+            console.log("Usuário autenticado com sucesso: ", usuario.email);
+
+            // Se acabou de logar e ainda não exibiu a mensagem nesta carga de página
+            if (!jaExibiuBoasVindas) {
+                // Tratamento de Texto: Extrai o nome antes do '@', troca pontos por espaços e capitaliza
+                let nomeTratado = usuario.email.split('@')[0];
+                nomeTratado = nomeTratado.replace(/[\._]/g, ' '); // Troca pontos ou underlines por espaço
+                nomeTratado = nomeTratado.split(' ').map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1)).join(' ');
+
+                // Cria o Toast moderno de boas-vindas
+                const novoToast = document.createElement('div');
+                novoToast.className = 'toast-boas-vindas';
+                novoToast.innerHTML = `
+                    <div style="background: #2ecc71; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <div>
+                        <span style="display: block; font-weight: bold; color: #ffffff;">Olá, ${nomeTratado}!</span>
+                        <span style="font-size: 12px; color: #a4b0be;">Seja bem-vindo ao Gestão Integrada.</span>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(novoToast);
+                jaExibiuBoasVindas = true;
+
+                // Remove o elemento do HTML após terminar a animação de saída
+                setTimeout(() => {
+                    novoToast.remove();
+                }, 4000);
+            }
+        } else {
+            telaLogin.style.display = 'flex';
+            btnEntrar.innerText = 'Entrar no Sistema';
+            btnEntrar.disabled = false;
+            document.getElementById('login-senha').value = ''; 
+            jaExibiuBoasVindas = false; // Reseta o controle ao deslogar
+        }
+    });
+}
+
+// Inicializa a segurança de forma automática ao carregar a página
+configurarSistemaLoginCREAS();
+
+// =================================================================
+// FUNÇÃO DE LOGOUT COM MODAL MODERNO E PERSONALIZADO
+// =================================================================
+function fazerLogoutSistema() {
+    // Remove qualquer modal de confirmação anterior que possa ter ficado preso
+    const modalExistente = document.getElementById('modal-confirmar-sair');
+    if (modalExistente) modalExistente.remove();
+
+    // Injeta os estilos de transição e design do novo modal
+    if (!document.getElementById('estilos-logout-moderno')) {
+        const estilos = document.createElement('style');
+        estilos.id = 'estilos-logout-moderno';
+        estilos.innerHTML = `
+            #modal-confirmar-sair {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(45, 52, 54, 0.75); /* Fundo escurecido suave */
+                backdrop-filter: blur(4px); /* Efeito de desfoque no fundo */
+                z-index: 30000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                animation: fadeInLogout 0.2s ease-out;
+                font-family: 'Inter', sans-serif;
+            }
+            .card-logout-moderno {
+                background: #ffffff;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+                width: 90%;
+                max-width: 420px;
+                text-align: center;
+                transform: scale(0.9);
+                animation: scaleUpLogout 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            }
+            .botoes-logout-container {
+                display: flex;
+                gap: 12px;
+                margin-top: 25px;
+                justify-content: center;
+            }
+            .btn-logout-acao {
+                padding: 11px 24px;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .btn-logout-confirmar {
+                background: #d63031;
+                color: white;
+            }
+            .btn-logout-confirmar:hover {
+                background: #b81d22;
+                box-shadow: 0 4px 12px rgba(214, 48, 49, 0.3);
+            }
+            .btn-logout-cancelar {
+                background: #f1f2f6;
+                color: #57606f;
+            }
+            .btn-logout-cancelar:hover {
+                background: #dfe4ea;
+                color: #2f3542;
+            }
+            @keyframes fadeInLogout { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes scaleUpLogout { to { transform: scale(1); } }
+        `;
+        document.head.appendChild(estilos);
+    }
+
+    // Cria a estrutura do modal customizado
+    const painelModal = document.createElement('div');
+    painelModal.id = 'modal-confirmar-sair';
+    painelModal.innerHTML = `
+        <div class="card-logout-moderno">
+            <div style="width: 55px; height: 55px; background: #fff5f5; color: #d63031; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; font-size: 24px;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="margin: 0 0 8px 0; color: #2d3436; font-size: 18px; font-weight: 700;">Encerrar Sessão?</h3>
+            <p style="margin: 0; color: #636e72; font-size: 14px; line-height: 1.5;">Deseja realmente sair do sistema <strong>Gestão Integrada</strong>? Você precisará fazer login novamente para acessar os dados.</p>
+            
+            <div class="botoes-logout-container">
+                <button id="logout-btn-cancelar" class="btn-logout-acao btn-logout-cancelar">
+                    Cancelar
+                </button>
+                <button id="logout-btn-confirmar" class="btn-logout-acao btn-logout-confirmar">
+                    <i class="fa-solid fa-check"></i> Sim, Sair
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(painelModal);
+
+    // Escutas de evento para os novos botões do card
+    document.getElementById('logout-btn-cancelar').addEventListener('click', () => {
+        painelModal.remove();
+    });
+
+    document.getElementById('logout-btn-confirmar').addEventListener('click', () => {
+        painelModal.remove();
+        firebase.auth().signOut(); // Executa o encerramento no Firebase
+    });
+
+    // Fecha o modal caso o usuário clique na área escura de fora
+    painelModal.addEventListener('click', (e) => {
+        if (e.target.id === 'modal-confirmar-sair') {
+            painelModal.remove();
+        }
+    });
+}
+
 
 
 function fecharModalJudicial() { document.getElementById('modalJudicialModerno').style.display = 'none'; }

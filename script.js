@@ -2177,14 +2177,14 @@ window.verificarPendenciasRma = function() {
           });
 
           let pendentes = MUNICIPIOS_LISTA.filter(c => !cidadesComRegistro.includes(c));
-          const temPendenciaGlobal = pendentes.length > 0 && diaAtual > 2;
+          const temPendenciaGlobal = pendentes.length > 0 && diaAtual > 7;
           
           // Aplica pulso tanto no card da Home quanto no botão de menu
           aplicarEstiloPulsoRma(temPendenciaGlobal);
 
           const faixa = document.getElementById('alertaPendenciaRma');
           if (faixa) {
-              if (pendentes.includes(CIDADE_ATUAL_RMA) && diaAtual > 2) {
+              if (pendentes.includes(CIDADE_ATUAL_RMA) && diaAtual > 7) {
                   faixa.style.display = 'flex';
                   faixa.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ATENÇÃO: Hoje é dia ${diaAtual} e o RMA de <b>${mesAnteriorNome}</b> está pendente para: <b>${CIDADE_ATUAL_RMA}</b>`;
               } else {
